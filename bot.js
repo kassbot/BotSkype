@@ -6,33 +6,50 @@ const { ActivityHandler } = require('botbuilder');
 class EchoBot extends ActivityHandler {
     constructor() {
         super();
+
+        // function sleep(ms) {
+        //     return new Promise(resolve => {
+        //         setTimeout(resolve, ms);
+        //     });
+        // }
+        function getDataTicket() {
+            return new Promise((resolve, reject) => {
+                let rp = require('request-promise');
+                let options = {
+                    uri: 'http://localhost/kassandra/web/api/nbticket',
+                    headers: {
+                        'User-Agent': 'Request-Promise'
+                    },
+                    json: true, // Automatically parses the JSON string in the response
+                    resolveWithFullResponse: true
+                };
+
+                return rp(options).then((response) => {
+                    resolve(response.body);
+                });
+            });
+        }
+
         this.onMessage(async (context, next) => {
             if (context.activity.text === 'ticket') {
-                let res;
-                let request = require('request');
-                // eslint-disable-next-line handle-callback-err
-                request('http://127.0.0.1/kassandra/web/api/nbticket', async function(error, response, body) {
-                    console.log(body);
-                    res = body;
-                    await context.sendActivity(res);
-                });
-                await context.sendActivity(res);
-                // let options = {
-                //     host: 'http://localhost/web',
-                //     path: '/api/nbticket',
-                //     method: 'GET'
-                // };
-                // let req = http.request(options, function(res) {
-                //     console.log('STATUS: ' + res.statusCode);
-                //     console.log('HEADERS: ' + JSON.stringify(res.headers));
-                //     res.setEncoding('utf8');
-                //     res.on('data', function(chunk) {
-                //         console.log('BODY: ' + chunk);
-                //     });
-                //     req.on('error', function(e) {
-                //         console.log('problem with request: ' + e.message);
-                //     });
-                // });
+                let ret = await getDataTicket();
+                let dateFormat = require('dateformat');
+                console.log(ret[0]);
+                let response = 'Liste des tickets ouvert: \n';
+
+
+                for (let i = 0; ret[i]; i++) {
+                    if (i !== 0) response += '\n\n';
+                    response += 'Titre : ' + ret[i].title;
+                    response += '\n- Priorité : ' + ret[i].priority;
+                    response += '\n- Createur : ' + ret[i].nameCreator;
+                    response += '\n- Description : ' + ret[i].description;
+                    response += '\n- Date postée : ' + dateFormat(ret[i].createdAt, 'dd-mm');
+                    response += '\n- id : ' + ret[i].id;
+                }
+
+
+                await context.sendActivity(response);
             } else {
                 await context.sendActivity(`Je ne connais pas cette commande'`);
             }
