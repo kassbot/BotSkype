@@ -16,7 +16,8 @@ class EchoBot extends ActivityHandler {
             return new Promise((resolve, reject) => {
                 let rp = require('request-promise');
                 let options = {
-                    uri: 'http://localhost/kassandra/web/api/nbticket',
+                    // uri: 'http://localhost/kassandra/web/api/nbticket',
+                    uri: 'http://kassandra.fun/web/api/nbticket',
                     headers: {
                         'User-Agent': 'Request-Promise'
                     },
