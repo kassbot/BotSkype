@@ -12,7 +12,7 @@ class EchoBot extends ActivityHandler {
                 let rp = require('request-promise');
                 let options = {
                     // uri: 'http://localhost/kassandra/web/api/nbticket',
-                    uri: 'kassandra.fun/api/nbticket',
+                    uri: 'http://kassandra.fun/api/nbticket',
                     headers: {
                         'User-Agent': 'Request-Promise',
                         'x-auth-token': '8d71f29234e379cbd93fab44743203c5bot'
