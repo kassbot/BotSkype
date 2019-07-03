@@ -11,8 +11,8 @@ class EchoBot extends ActivityHandler {
             return new Promise((resolve, reject) => {
                 let rp = require('request-promise');
                 let options = {
-                    uri: 'http://localhost/kassandra/web/api/nbticket',
-                    // uri: 'http://kassandra.fun/web/api/nbticket',
+                    // uri: 'http://localhost/kassandra/web/api/nbticket',
+                    uri: 'kassandra.fun/api/nbticket',
                     headers: {
                         'User-Agent': 'Request-Promise',
                         'x-auth-token': '8d71f29234e379cbd93fab44743203c5bot'
@@ -32,7 +32,8 @@ class EchoBot extends ActivityHandler {
                 let rp = require('request-promise');
                 let options = {
                     method: 'POST',
-                    uri: 'http://localhost/kassandra/web/api/newticket',
+                    uri: 'kassandra.fun/api/newticket',
+                    // uri: 'http://localhost/kassandra/web/api/newticket',
                     headers: {
                         'User-Agent': 'Request-Promise',
                         'x-auth-token': '8d71f29234e379cbd93fab44743203c5bot'
@@ -53,7 +54,7 @@ class EchoBot extends ActivityHandler {
                 let rp = require('request-promise');
                 let options = {
                     method: 'POST',
-                    uri: 'http://localhost/kassandra/web/api/closeticket',
+                    uri: 'kassandra.fun/api/closeticket',
                     headers: {
                         'User-Agent': 'Request-Promise',
                         'x-auth-token': '8d71f29234e379cbd93fab44743203c5bot'
@@ -75,7 +76,8 @@ class EchoBot extends ActivityHandler {
                 let rp = require('request-promise');
                 let options = {
                     method: 'POST',
-                    uri: 'http://localhost/kassandra/web/api/taketicket',
+                    uri: 'kassandra.fun/api/taketicket',
+                    // uri: 'http://localhost/kassandra/web/api/taketicket',
                     headers: {
                         'User-Agent': 'Request-Promise',
                         'x-auth-token': '8d71f29234e379cbd93fab44743203c5bot'
@@ -156,11 +158,16 @@ class EchoBot extends ActivityHandler {
             }
         }
 
+        async function manageTicket(name, str) {
+
+        }
+
         this.onMessage(async (context, next) => {
             let str = context.activity.text.split(' ');
             let response = null;
 
             if (str[0] === 'ticket') { //
+                response = manageTicket(context.activity.from.name, str);
                 if (str[1] === 'view') {
                     response = await getOpenTickets();
                 } else if (str[1] === 'new') {
