@@ -32,7 +32,7 @@ class EchoBot extends ActivityHandler {
                 let rp = require('request-promise');
                 let options = {
                     method: 'POST',
-                    uri: 'kassandra.fun/api/newticket',
+                    uri: 'http://kassandra.fun/api/newticket',
                     // uri: 'http://localhost/kassandra/web/api/newticket',
                     headers: {
                         'User-Agent': 'Request-Promise',
@@ -54,7 +54,7 @@ class EchoBot extends ActivityHandler {
                 let rp = require('request-promise');
                 let options = {
                     method: 'POST',
-                    uri: 'kassandra.fun/api/closeticket',
+                    uri: 'http://kassandra.fun/api/closeticket',
                     headers: {
                         'User-Agent': 'Request-Promise',
                         'x-auth-token': '8d71f29234e379cbd93fab44743203c5bot'
@@ -76,7 +76,8 @@ class EchoBot extends ActivityHandler {
                 let rp = require('request-promise');
                 let options = {
                     method: 'POST',
-                    uri: 'kassandra.fun/api/taketicket',
+                    uri: 'http://kassandra.fun/api/taketicket',
+                    uri: 'http://kassandra.fun/api/taketicket',
                     // uri: 'http://localhost/kassandra/web/api/taketicket',
                     headers: {
                         'User-Agent': 'Request-Promise',
