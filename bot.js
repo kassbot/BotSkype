@@ -14,7 +14,8 @@ class EchoBot extends ActivityHandler {
                     uri: 'http://localhost/kassandra/web/api/nbticket',
                     // uri: 'http://kassandra.fun/web/api/nbticket',
                     headers: {
-                        'User-Agent': 'Request-Promise'
+                        'User-Agent': 'Request-Promise',
+                        'x-auth-token': '8d71f29234e379cbd93fab44743203c5bot'
                     },
                     json: true, // Automatically parses the JSON string in the response
                     resolveWithFullResponse: true
@@ -32,16 +33,60 @@ class EchoBot extends ActivityHandler {
                 let options = {
                     method: 'POST',
                     uri: 'http://localhost/kassandra/web/api/newticket',
-                    // uri: 'http://kassandra.fun/web/api/nbticket',
                     headers: {
-                        'User-Agent': 'Request-Promise'
+                        'User-Agent': 'Request-Promise',
+                        'x-auth-token': '8d71f29234e379cbd93fab44743203c5bot'
                     },
                     json: true, // Automatically parses the JSON string in the response
                     resolveWithFullResponse: true
                 };
                 options.body = paramTicket;
                 options.body.nameCreator = nameCreator;
-                console.log(options);
+                return rp(options).then((response) => {
+                    resolve(response.body);
+                });
+            });
+        }
+
+        function postCloseTicket(id) {
+            return new Promise((resolve, reject) => {
+                let rp = require('request-promise');
+                let options = {
+                    method: 'POST',
+                    uri: 'http://localhost/kassandra/web/api/closeticket',
+                    headers: {
+                        'User-Agent': 'Request-Promise',
+                        'x-auth-token': '8d71f29234e379cbd93fab44743203c5bot'
+                    },
+                    body: {
+                        id: id
+                    },
+                    json: true, // Automatically parses the JSON string in the response
+                    resolveWithFullResponse: true
+                };
+                return rp(options).then((response) => {
+                    resolve(response.body);
+                });
+            });
+        }
+
+        function postTakeTicket(id, name) {
+            return new Promise((resolve, reject) => {
+                let rp = require('request-promise');
+                let options = {
+                    method: 'POST',
+                    uri: 'http://localhost/kassandra/web/api/taketicket',
+                    headers: {
+                        'User-Agent': 'Request-Promise',
+                        'x-auth-token': '8d71f29234e379cbd93fab44743203c5bot'
+                    },
+                    body: {
+                        id: id,
+                        nameTek: name
+                    },
+                    json: true, // Automatically parses the JSON string in the response
+                    resolveWithFullResponse: true
+                };
                 return rp(options).then((response) => {
                     resolve(response.body);
                 });
@@ -51,7 +96,6 @@ class EchoBot extends ActivityHandler {
         async function getOpenTickets() {
             let ret = await getDataTicket();
             let dateFormat = require('dateformat');
-            console.log(ret[0]);
             let response = 'Liste des tickets ouvert: \n___________________\n';
 
             for (let i = 0; ret[i]; i++) {
@@ -60,14 +104,11 @@ class EchoBot extends ActivityHandler {
                 response += '\n- Priorité : ' + ret[i].priority;
                 response += '\n- Createur : ' + ret[i].nameCreator;
                 response += '\n- Description : ' + ret[i].description;
+                response += '\n- Responsable : ' + ret[i].nameTek;
                 response += '\n- Date postée : ' + dateFormat(ret[i].createdAt, 'dd-mm');
                 response += '\n- id : ' + ret[i].id;
             }
             return response;
-        }
-
-        async function newTicket(paramTicket, nameCreator) {
-            return await postNewTicket(paramTicket, nameCreator);
         }
 
         function checkStr(str) {
@@ -108,7 +149,6 @@ class EchoBot extends ActivityHandler {
                     }
                 }
             }
-            console.log(JSON.stringify(ret) + '  ' + JSON.stringify(check));
             if (check.title === true && check.desc === true && check.prio === true) {
                 return ret;
             } else {
@@ -118,23 +158,31 @@ class EchoBot extends ActivityHandler {
 
         this.onMessage(async (context, next) => {
             let str = context.activity.text.split(' ');
-            console.log(context.activity.from.name);
             let response = null;
 
-            if (str[0] === 'ticket') {
-                if (str[1] === '-v' || str[1] === 'view' || str[1] === '--view') {
+            if (str[0] === 'ticket') { //
+                if (str[1] === 'view') {
                     response = await getOpenTickets();
-                } else if (str[1] === 'new' || str[1] === '-n' || str[1] === '--new') {
+                } else if (str[1] === 'new') {
                     let paramTicket = checkStr(str);
                     if (checkStr(str) !== false) {
-                        response = await newTicket(paramTicket, context.activity.from.name);
+                        response = await postNewTicket(paramTicket, context.activity.from.name);
                     } else {
-                        response = 'commande incorrecte';
+                        response = 'Usage : Veuillez renseigner tout les champs suivant dans la commande' +
+                            '\n- -title [titre du ticket]' +
+                            '\n- -desc [description du ticket]' +
+                            '\n- -prio [priorité du ticket : 1 (élevé) ,2 ou 3 (bas)]';
                     }
+                } else if (str[1] === 'close' && str[2] != null) {
+                    response = await postCloseTicket(str[2]);
+                } else if (str[1] === 'take' && str[2] != null) {
+                    response = await postTakeTicket(str[2], context.activity.from.name);
                 } else {
-                    response = 'usage : \n' +
-                        '- view / -v / --view : affiche tout les tickets ouverts' +
-                        '\n- new : crée un nouveau ticket';
+                    response = 'Usage : ' +
+                        '\n- view : affiche tout les tickets ouverts' +
+                        '\n- new : crée un nouveau ticket' +
+                        '\n- close [id] : ferme le ticket [id]' +
+                        '\n- take [id] : assigne le responsable du ticket [id] avec votre nom skype';
                 }
                 await context.sendActivity(response);
             } else if (str[0] === 'help') {
