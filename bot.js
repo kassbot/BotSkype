@@ -7,17 +7,12 @@ class EchoBot extends ActivityHandler {
     constructor() {
         super();
 
-        // function sleep(ms) {
-        //     return new Promise(resolve => {
-        //         setTimeout(resolve, ms);
-        //     });
-        // }
         function getDataTicket() {
             return new Promise((resolve, reject) => {
                 let rp = require('request-promise');
                 let options = {
-                    // uri: 'http://localhost/kassandra/web/api/nbticket',
-                    uri: 'http://kassandra.fun/web/api/nbticket',
+                    uri: 'http://localhost/kassandra/web/api/nbticket',
+                    // uri: 'http://kassandra.fun/web/api/nbticket',
                     headers: {
                         'User-Agent': 'Request-Promise'
                     },
@@ -31,26 +26,119 @@ class EchoBot extends ActivityHandler {
             });
         }
 
-        this.onMessage(async (context, next) => {
-            if (context.activity.text === 'ticket') {
-                let ret = await getDataTicket();
-                let dateFormat = require('dateformat');
-                console.log(ret[0]);
-                let response = 'Liste des tickets ouvert: \n';
+        function postNewTicket(paramTicket, nameCreator) {
+            return new Promise((resolve, reject) => {
+                let rp = require('request-promise');
+                let options = {
+                    method: 'POST',
+                    uri: 'http://localhost/kassandra/web/api/newticket',
+                    // uri: 'http://kassandra.fun/web/api/nbticket',
+                    headers: {
+                        'User-Agent': 'Request-Promise'
+                    },
+                    json: true, // Automatically parses the JSON string in the response
+                    resolveWithFullResponse: true
+                };
+                options.body = paramTicket;
+                options.body.nameCreator = nameCreator;
+                console.log(options);
+                return rp(options).then((response) => {
+                    resolve(response.body);
+                });
+            });
+        }
 
+        async function getOpenTickets() {
+            let ret = await getDataTicket();
+            let dateFormat = require('dateformat');
+            console.log(ret[0]);
+            let response = 'Liste des tickets ouvert: \n___________________\n';
 
-                for (let i = 0; ret[i]; i++) {
-                    if (i !== 0) response += '\n\n';
-                    response += 'Titre : ' + ret[i].title;
-                    response += '\n- Priorité : ' + ret[i].priority;
-                    response += '\n- Createur : ' + ret[i].nameCreator;
-                    response += '\n- Description : ' + ret[i].description;
-                    response += '\n- Date postée : ' + dateFormat(ret[i].createdAt, 'dd-mm');
-                    response += '\n- id : ' + ret[i].id;
+            for (let i = 0; ret[i]; i++) {
+                if (i !== 0) response += '\n___________________\n';
+                response += 'Titre : ' + ret[i].title;
+                response += '\n- Priorité : ' + ret[i].priority;
+                response += '\n- Createur : ' + ret[i].nameCreator;
+                response += '\n- Description : ' + ret[i].description;
+                response += '\n- Date postée : ' + dateFormat(ret[i].createdAt, 'dd-mm');
+                response += '\n- id : ' + ret[i].id;
+            }
+            return response;
+        }
+
+        async function newTicket(paramTicket, nameCreator) {
+            return await postNewTicket(paramTicket, nameCreator);
+        }
+
+        function checkStr(str) {
+            let check = { title: false, desc: false, prio: false };
+            let ret = { title: '', desc: '', prio: '' };
+            let value = '';
+            for (let i = 0; str[i]; i++) {
+                switch (str[i]) {
+                case '-title': {
+                    value = 'title';
+                    break;
                 }
+                case '-desc': {
+                    value = 'desc';
+                    break;
+                }
+                case '-prio': {
+                    value = 'prio';
+                    break;
+                }
+                default:
+                    switch (value) {
+                    case 'title': {
+                        check.title = true;
+                        ret.title += str[i] + ' ';
+                        break;
+                    }
+                    case 'desc': {
+                        check.desc = true;
+                        ret.desc += str[i] + ' ';
+                        break;
+                    }
+                    case 'prio': {
+                        check.prio = true;
+                        ret.prio += str[i] + ' ';
+                        break;
+                    }
+                    }
+                }
+            }
+            console.log(JSON.stringify(ret) + '  ' + JSON.stringify(check));
+            if (check.title === true && check.desc === true && check.prio === true) {
+                return ret;
+            } else {
+                return false;
+            }
+        }
 
+        this.onMessage(async (context, next) => {
+            let str = context.activity.text.split(' ');
+            console.log(context.activity.from.name);
+            let response = null;
 
+            if (str[0] === 'ticket') {
+                if (str[1] === '-v' || str[1] === 'view' || str[1] === '--view') {
+                    response = await getOpenTickets();
+                } else if (str[1] === 'new' || str[1] === '-n' || str[1] === '--new') {
+                    let paramTicket = checkStr(str);
+                    if (checkStr(str) !== false) {
+                        response = await newTicket(paramTicket, context.activity.from.name);
+                    } else {
+                        response = 'commande incorrecte';
+                    }
+                } else {
+                    response = 'usage : \n' +
+                        '- view / -v / --view : affiche tout les tickets ouverts' +
+                        '\n- new : crée un nouveau ticket';
+                }
                 await context.sendActivity(response);
+            } else if (str[0] === 'help') {
+                await context.sendActivity(`Commandes disponibles actuellement : ticket'`);
             } else {
                 await context.sendActivity(`Je ne connais pas cette commande'`);
             }
