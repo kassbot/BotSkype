@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 const { ActivityHandler } = require('botbuilder/lib/index');
+const { ApiRequest } = require('../request/apiRequest');
 
 class SkypeBot extends ActivityHandler {
     /**
@@ -10,7 +11,7 @@ class SkypeBot extends ActivityHandler {
      * @param {UserState} userState
      * @param {Dialog} dialog
      */
-    constructor(conversationState, userState, dialog) {
+    constructor(conversationState, userState, dialog, api) {
         super();
         if (!conversationState) throw new Error('[DialogBot]: Missing parameter. conversationState is required');
         if (!userState) throw new Error('[DialogBot]: Missing parameter. userState is required');
@@ -19,6 +20,7 @@ class SkypeBot extends ActivityHandler {
         this.conversationState = conversationState;
         this.userState = userState;
         this.dialog = dialog;
+        this.api = new ApiRequest();
         this.dialog.progressDialog = false;
         this.dialogState = this.conversationState.createProperty('DialogState');
 
@@ -26,31 +28,31 @@ class SkypeBot extends ActivityHandler {
             let str = context.activity.text.split(' ');
             let response = null;
 
-            console.log(this.dialog.progressDialog);
-
-            if (str[0] === 'ticket') { //
+            if (this.dialog.progressDialog) {
+                await this.dialog.run(context, this.dialogState);
+            } else if (str[0] === 'ticket') { //
                 if (str[1] === 'view') {
-                    response = await getOpenTickets();
+                    response = await getOpenTickets(this.api);
                 } else if (str[1] === 'new') {
                     let paramTicket = checkStr(str);
                     if (checkStr(str) !== false) {
-                        response = await postNewTicket(paramTicket, context.activity.from.name);
+                        response = await this.api.postNewTicket(paramTicket, context.activity.from.name);
                     } else {
                         this.dialog.progressDialog = true;
+                        await context.sendActivity('Lancement de la creation de Ticket');
                         await this.dialog.run(context, this.dialogState);
-                        response = '';
                     }
                 } else if (str[1] === 'close' && str[2] != null) {
-                    response = await postCloseTicket(str[2]);
+                    response = await this.api.postCloseTicket(str[2]);
                 } else if (str[1] === 'take' && str[2] != null) {
-                    response = await postTakeTicket(str[2], context.activity.from.name);
+                    response = await this.api.postTakeTicket(str[2], context.activity.from.name);
                 } else {
                     response = 'Usage : ' +
                         '\n- view : affiche tout les tickets ouverts' +
                         '\n- new : crée un nouveau ticket avec les champs obligatoires suivant : ' +
-                        '\n\t -title [titre du ticket] ' +
-                        '\n\t -desc [description du ticket]' +
-                        '\n\t -prio [priorité du ticket : 1 (élevé) ,2 ou 3 (bas)]' +
+                        '\n --title [titre du ticket] ' +
+                        '\n --desc [description du ticket]' +
+                        '\n --prio [priorité du ticket : 1 (élevé) ,2 ou 3 (bas)]' +
                         '\n- close [id] : ferme le ticket [id]' +
                         '\n- take [id] : assigne le responsable du ticket [id] avec votre nom skype';
                 }
@@ -82,97 +84,10 @@ class SkypeBot extends ActivityHandler {
             await next();
         });
 
-        function getDataTicket() {
-            return new Promise((resolve, reject) => {
-                let rp = require('request-promise');
-                let options = {
-                    // uri: 'http://localhost/kassandra/web/api/nbticket',
-                    uri: 'http://kassandra.fun/api/nbticket',
-                    headers: {
-                        'User-Agent': 'Request-Promise',
-                        'x-auth-token': '8d71f29234e379cbd93fab44743203c5bot'
-                    },
-                    json: true, // Automatically parses the JSON string in the response
-                    resolveWithFullResponse: true
-                };
 
-                return rp(options).then((response) => {
-                    resolve(response.body);
-                });
-            });
-        }
 
-        function postNewTicket(paramTicket, nameCreator) {
-            return new Promise((resolve, reject) => {
-                let rp = require('request-promise');
-                let options = {
-                    method: 'POST',
-                    uri: 'http://kassandra.fun/api/newticket',
-                    // uri: 'http://localhost/kassandra/web/api/newticket',
-                    headers: {
-                        'User-Agent': 'Request-Promise',
-                        'x-auth-token': '8d71f29234e379cbd93fab44743203c5bot'
-                    },
-                    json: true, // Automatically parses the JSON string in the response
-                    resolveWithFullResponse: true
-                };
-                options.body = paramTicket;
-                options.body.nameCreator = nameCreator;
-                return rp(options).then((response) => {
-                    resolve(response.body);
-                });
-            });
-        }
-
-        function postCloseTicket(id) {
-            return new Promise((resolve, reject) => {
-                let rp = require('request-promise');
-                let options = {
-                    method: 'POST',
-                    uri: 'http://kassandra.fun/api/closeticket',
-                    headers: {
-                        'User-Agent': 'Request-Promise',
-                        'x-auth-token': '8d71f29234e379cbd93fab44743203c5bot'
-                    },
-                    body: {
-                        id: id
-                    },
-                    json: true, // Automatically parses the JSON string in the response
-                    resolveWithFullResponse: true
-                };
-                return rp(options).then((response) => {
-                    resolve(response.body);
-                });
-            });
-        }
-
-        function postTakeTicket(id, name) {
-            return new Promise((resolve, reject) => {
-                let rp = require('request-promise');
-                let options = {
-                    method: 'POST',
-                    // uri: 'http://kassandra.fun/api/taketicket',
-                    uri: 'http://kassandra.fun/api/taketicket',
-                    // uri: 'http://localhost/kassandra/web/api/taketicket',
-                    headers: {
-                        'User-Agent': 'Request-Promise',
-                        'x-auth-token': '8d71f29234e379cbd93fab44743203c5bot'
-                    },
-                    body: {
-                        id: id,
-                        nameTek: name
-                    },
-                    json: true, // Automatically parses the JSON string in the response
-                    resolveWithFullResponse: true
-                };
-                return rp(options).then((response) => {
-                    resolve(response.body);
-                });
-            });
-        }
-
-        async function getOpenTickets() {
-            let ret = await getDataTicket();
+        async function getOpenTickets(api) {
+            let ret = await api.getDataTicket();
             let dateFormat = require('dateformat');
             let response = 'Liste des tickets ouvert: \n___________________\n';
 
